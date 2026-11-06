@@ -1,7 +1,13 @@
-"""Perceptron: a single-layer neural network for binary classification."""
+"""Perceptron: a single-layer neural network for binary classification.
+
+Example:
+    python perceptron.py --samples 200 --lr 0.1 --epochs 50
+"""
 
 import argparse
-import random
+
+from datasets import load_iris_binary, make_data
+from plots import plot_decision_boundary, plot_errors
 
 
 class Perceptron:
@@ -15,6 +21,7 @@ class Perceptron:
         self.bias: float = 0.0
         self.lr: float = learning_rate
         self.epochs: int = epochs
+        self.errors_per_epoch: list[int] = []
 
     def activate(self, z: float) -> int:
         """Return 1 if z >= 0, otherwise 0."""
@@ -26,13 +33,21 @@ class Perceptron:
         return self.activate(z)
 
     def train(self, X: list[list[float]], y: list[int]) -> None:
-        """Fit weights: after each mistake shift them towards the right answer."""
+        """Fit weights: after each mistake shift them towards the right answer.
+
+        The number of mistakes made in every epoch is saved in errors_per_epoch.
+        """
+        self.errors_per_epoch = []
         for _ in range(self.epochs):
+            errors = 0
             for x, target in zip(X, y):
                 error = target - self.predict(x)
+                if error != 0:
+                    errors += 1
                 for i in range(len(self.w)):
                     self.w[i] += self.lr * error * x[i]
                 self.bias += self.lr * error
+            self.errors_per_epoch.append(errors)
 
     def score(self, X: list[list[float]], y: list[int]) -> float:
         """Return the share of correctly classified points."""
@@ -40,28 +55,24 @@ class Perceptron:
         return correct / len(y)
 
 
-def make_data(n_samples: int, seed: int = 0) -> tuple[list[list[float]], list[int]]:
-    """Generate two 2D classes around the centres (-2, -2) and (2, 2)."""
-    rng = random.Random(seed)
-    X: list[list[float]] = []
-    y: list[int] = []
-    for i in range(n_samples):
-        label = i % 2
-        centre = 2.0 if label == 1 else -2.0
-        X.append([rng.gauss(centre, 0.5), rng.gauss(centre, 0.5)])
-        y.append(label)
-    return X, y
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Read and validate command-line arguments."""
     parser = argparse.ArgumentParser(
-        description="Train a perceptron on synthetic 2D data."
+        description="Train a perceptron on random 2D points or on the iris flowers."
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=["synthetic", "iris"],
+        default="synthetic",
+        help="data to learn from (default: synthetic)",
     )
     parser.add_argument("--samples", type=int, default=200, help="number of points")
     parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
     parser.add_argument("--epochs", type=int, default=50, help="number of epochs")
     parser.add_argument("--seed", type=int, default=0, help="random seed")
+    parser.add_argument(
+        "--plot", action="store_true", help="save errors.png and boundary.png"
+    )
     args = parser.parse_args(argv)
     if args.samples < 2:
         parser.error("--samples must be at least 2")
@@ -72,13 +83,35 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return args
 
 
+def load_dataset(
+    name: str, samples: int, seed: int
+) -> tuple[list[list[float]], list[int]]:
+    """Return points and their classes for the chosen dataset."""
+    if name == "iris":
+        return load_iris_binary()
+    return make_data(samples, seed)
+
+
+def save_plots(model: Perceptron, X: list[list[float]], y: list[int]) -> None:
+    """Save the error plot, and the decision boundary for 2D data."""
+    plot_errors(model.errors_per_epoch, "errors.png")
+    print("Saved errors.png")
+    if len(model.w) == 2:
+        plot_decision_boundary(X, y, model.w, model.bias, "boundary.png")
+        print("Saved boundary.png")
+    else:
+        print("Decision boundary is drawn only for 2D data, skipped.")
+
+
 def main(argv: list[str] | None = None) -> None:
-    """Generate data, train the perceptron and print the accuracy."""
+    """Load data, train the perceptron, print the accuracy, optionally plot."""
     args = parse_args(argv)
-    X, y = make_data(args.samples, args.seed)
-    model = Perceptron(n_features=2, learning_rate=args.lr, epochs=args.epochs)
+    X, y = load_dataset(args.dataset, args.samples, args.seed)
+    model = Perceptron(n_features=len(X[0]), learning_rate=args.lr, epochs=args.epochs)
     model.train(X, y)
     print(f"Accuracy: {model.score(X, y):.3f}")
+    if args.plot:
+        save_plots(model, X, y)
 
 
 if __name__ == "__main__":

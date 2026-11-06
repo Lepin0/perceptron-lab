@@ -19,8 +19,8 @@ def test_predict_with_known_weights() -> None:
     p = Perceptron(n_features=2)
     p.w = [1.0, -1.0]
     p.bias = 0.5
-    assert p.predict([2.0, 3.0]) == 0  
-    assert p.predict([3.0, 1.0]) == 1  
+    assert p.predict([2.0, 3.0]) == 0
+    assert p.predict([3.0, 1.0]) == 1
 
 
 def test_hand_example() -> None:
@@ -43,6 +43,7 @@ def test_bias_is_learned() -> None:
     p = Perceptron(n_features=1, learning_rate=0.1, epochs=100)
     p.train(X, y)
     assert p.score(X, y) == 1.0
+
 
 def test_errors_per_epoch_recorded() -> None:
     p = Perceptron(n_features=2, learning_rate=1.0, epochs=5)

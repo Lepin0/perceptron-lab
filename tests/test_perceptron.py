@@ -49,3 +49,11 @@ def test_errors_per_epoch_recorded() -> None:
     p = Perceptron(n_features=2, learning_rate=1.0, epochs=5)
     p.train([[1.0, 2.0], [1.0, 0.0]], [0, 1])
     assert p.errors_per_epoch == [2, 0, 0, 0, 0]
+
+
+def test_predict_on_separable_data() -> None:
+    X, y = make_data(200, seed=1)
+    p = Perceptron(n_features=2, learning_rate=0.1, epochs=50)
+    p.train(X, y)
+    assert p.predict([2.0, 2.0]) == 1
+    assert p.predict([-2.0, -2.0]) == 0

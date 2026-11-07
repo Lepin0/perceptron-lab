@@ -1,5 +1,4 @@
-﻿mkdir -p .github/workflows
-cat > .github/workflows/ci.yml << 'EOF'
+﻿
 name: CI
 
 on:
@@ -31,4 +30,3 @@ jobs:
 
       - name: Tests (pytest)
         run: pytest
-EOF
